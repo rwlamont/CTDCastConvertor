@@ -52,7 +52,7 @@ namespace ConsoleApplication1
             }
 
             
-               var toSave = Directory.GetCurrentDirectory() + "\\Completed_Files\\" + Path.GetFileNameWithoutExtension(fileName) + "_Data.txt";
+            var toSave = Directory.GetCurrentDirectory() + "\\" + Path.GetFileNameWithoutExtension(fileName) + "_Data.txt";
             var writer = new StreamWriter(toSave);
             writer.WriteLine(parseHeader(variables));
             for (int i = endLine; i < lines.Count(); i++)
@@ -64,7 +64,7 @@ namespace ConsoleApplication1
 
             using (ZipFile zip = new ZipFile())
             {
-                zip.AddFile(Path.GetFileName(fileName));
+                zip.AddFile(Path.GetFileName(toSave));
                 zip.Save(Path.GetFileNameWithoutExtension(fileName) + ".zip");
             }
            
@@ -128,7 +128,7 @@ namespace ConsoleApplication1
                         
                     }
 
-                    if (splitter[i].Contains('e'))
+                    if (splitter[i].Equals("0.000e+00"))
                     {
                         continue;
                     }
