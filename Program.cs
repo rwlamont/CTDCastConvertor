@@ -4,16 +4,49 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.IO.Compression;
+using System.Xml;
 using Ionic.BZip2;
 using Ionic.Zip;
 
 
 namespace ConsoleApplication1
 {
-   
+    class metaInfo
+    {
+        public string name;
+        public string unit;
+        public qcData qc;
+    }
+
+    class qcData
+    {
+        public string model;
+        public string sensorHeight;
+        public string calibration;
+        public string calibrationType;
+    }
+
+    class waterBody
+    {
+        public string id;
+        public string name;
+        public string region;
+        public string exactCoord;
+        public string elevation;
+        public string depth;
+        public string depthCalibration;
+        public string notes;
+        public string siteName;
+        public string longitude;
+        public string latitude;
+    }
+
+
+
     class Program
     {
-        
+        static List<metaInfo> metaData = new List<metaInfo>();
+        static waterBody waterMeta = new waterBody();
         static int depthHeader = 0;
         static bool firstDepth = false;
         static double offset = 0.0;
@@ -54,6 +87,8 @@ namespace ConsoleApplication1
             
             var toSave = Directory.GetCurrentDirectory() + "\\" + Path.GetFileNameWithoutExtension(fileName) + "_Data.txt";
             var writer = new StreamWriter(toSave);
+            
+            
             writer.WriteLine(parseHeader(variables));
             for (int i = endLine; i < lines.Count(); i++)
             {
@@ -61,10 +96,65 @@ namespace ConsoleApplication1
                 variableLine++;
             }
             writer.Close();
+            List<string> qcInfo = new List<string>();
+            qcInfo.Add("Vertical position type");
+            qcInfo.Add("Model");
+            qcInfo.Add("Accuracy Units");
+            qcInfo.Add("Calibration");
+            qcInfo.Add("Calibration Type");
+            qcInfo.Add("Sensor Height (m)");
+            qcInfo.Add("Notes");
+            using (XmlWriter xmlWriter = XmlWriter.Create(Path.GetFileName(toSave) + "Meta.xml"))
+            {
+                xmlWriter.WriteStartDocument();
+                xmlWriter.WriteStartElement("lernz-meta");
+                xmlWriter.WriteStartElement("variables");
+                foreach (metaInfo v in metaData)
+                {
+                    xmlWriter.WriteStartElement("variable");
+                    xmlWriter.WriteElementString("name", v.name);
+                    xmlWriter.WriteElementString("unit", v.unit);
+
+                    xmlWriter.WriteStartElement("qc-information");
+
+                    foreach (string qcs in qcInfo)
+                    {
+                        xmlWriter.WriteStartElement("qc-column");
+                        xmlWriter.WriteElementString("parameter", qcs);
+                        xmlWriter.WriteElementString("value", null);
+                        xmlWriter.WriteEndElement();// qc-column
+                    }
+                    xmlWriter.WriteEndElement();// qc-information
+                    xmlWriter.WriteEndElement();// variable
+                }
+                xmlWriter.WriteEndElement(); // end variables
+
+                xmlWriter.WriteStartElement("waterbodies");
+                xmlWriter.WriteStartElement("waterbody");
+                xmlWriter.WriteElementString("waterbody-id", waterMeta.id);
+                xmlWriter.WriteElementString("waterbody-name", waterMeta.name);
+                xmlWriter.WriteElementString("region", waterMeta.region);
+                xmlWriter.WriteElementString("exact-coord", waterMeta.exactCoord);
+                xmlWriter.WriteElementString("elevation", waterMeta.elevation);
+                xmlWriter.WriteElementString("water-depth-measured", waterMeta.depth);
+                xmlWriter.WriteElementString("water-calibration", waterMeta.depthCalibration);
+                xmlWriter.WriteElementString("notes", waterMeta.notes);
+                xmlWriter.WriteStartElement("site");
+                xmlWriter.WriteElementString("site-name", waterMeta.siteName);
+                xmlWriter.WriteElementString("longituide", waterMeta.longitude);
+                xmlWriter.WriteElementString("latitude", waterMeta.latitude);
+
+                xmlWriter.WriteEndElement();//site
+                xmlWriter.WriteEndElement();//waterbody
+
+                xmlWriter.WriteEndElement();//waterbodies
+                xmlWriter.WriteEndElement();//lernz-meta
+            }
 
             using (ZipFile zip = new ZipFile())
             {
                 zip.AddFile(Path.GetFileName(toSave));
+                zip.AddFile(Path.GetFileName(toSave) + "Meta.xml");
                 zip.Save(Path.GetFileNameWithoutExtension(fileName) + ".zip");
             }
            
@@ -72,13 +162,35 @@ namespace ConsoleApplication1
             Console.WriteLine("Endline = " + endLine);
             Console.WriteLine("variables = " + variableLine);
             Console.WriteLine("flag = " + flagLine);
+            metaData = new List<metaInfo>();
             
         }
+
+        static void readInWaterMeta()
+        {
+            var reader = new StreamReader("waterData.txt");
+            reader.ReadLine();
+            reader.ReadLine();
+            waterMeta.id = reader.ReadLine().Substring(14);
+            waterMeta.name = reader.ReadLine().Substring(16);
+            waterMeta.region = reader.ReadLine().Substring(8);
+            waterMeta.exactCoord = reader.ReadLine().Substring(13);
+            waterMeta.elevation = reader.ReadLine().Substring(10);
+            waterMeta.depth = reader.ReadLine().Substring(22);
+            waterMeta.depthCalibration = reader.ReadLine().Substring(18);
+            waterMeta.notes = reader.ReadLine().Substring(7);
+            waterMeta.siteName = reader.ReadLine().Substring(11);
+            waterMeta.longitude = reader.ReadLine().Substring(11);
+            waterMeta.latitude = reader.ReadLine().Substring(11);
+        }
+
+
         static void Main(string[] args)
         {
 
             string[] files = System.IO.Directory.GetFiles(Directory.GetCurrentDirectory(), "*.CNV");
             System.IO.Directory.CreateDirectory(Directory.GetCurrentDirectory() + "\\Completed_Files");
+            readInWaterMeta();
             for (int j = 0; j < files.Count(); j++)
             {
                 Console.WriteLine("Started processing " + files[j]);
@@ -154,9 +266,13 @@ namespace ConsoleApplication1
                 if(s.Contains("Temperature"))
                 {
                     finalHeader += "TmpWtr_v(degC)";
-                    finalHeader += "\t";   
+                    finalHeader += "\t";
+                    metaInfo temp = new metaInfo();
+                    temp.name = "TmpWtr_v(degC)";
+                    temp.unit = "degC";
+                    metaData.Add(temp);
                 }
-                else if (s.Contains("Depth"))
+                else if (s.Contains("Depth"))  //Sort out depth metadata when its all done
                 {
                     finalHeader += "Depth_(m)";
                     finalHeader += "\t";
@@ -172,61 +288,109 @@ namespace ConsoleApplication1
                 {
                     finalHeader += "pH_v()";
                     finalHeader += "\t";
+                    metaInfo ph = new metaInfo();
+                    ph.name = "pH_v()";
+                    ph.unit = " ";
+                    metaData.Add(ph);
                 }
                 else if (s.Contains("Density"))
                 {
                     finalHeader += "Density_v()";
                     finalHeader += "\t";
+                    metaInfo temp = new metaInfo();
+                    temp.name = "Density_v()";
+                    temp.unit = " ";
+                    metaData.Add(temp);
                 }
                 else if (s.Contains("sbeox0Mg/L"))
                 {
                     finalHeader += "DOconc_v(mg/L)";
                     finalHeader += "\t";
+                    metaInfo temp = new metaInfo();
+                    temp.name = "DOconc_v(mg/L)";
+                    temp.unit = "mg/L";
+                    metaData.Add(temp);
                 }
                 else if (s.Contains("Attenuation"))
                 {
                     finalHeader += "BmAtt_v(1/m)";
                     finalHeader += "\t";
+                    metaInfo temp = new metaInfo();
+                    temp.name = "BmAtt_v(1/m)";
+                    temp.unit = "1/m";
+                    metaData.Add(temp);
                 } 
                 else if (s.Contains("sbeox0PS"))
                 {
                     finalHeader += "DOsat_v(%sat)";
                     finalHeader += "\t";
+                    metaInfo temp = new metaInfo();
+                    temp.name = "DOsat_v(%sat)";
+                    temp.unit = "%sat";
+                    metaData.Add(temp);
                 }
                 else if (s.Contains("Conductivity"))
                 {
                     finalHeader += "Cond_v(mS/cm)";
                     finalHeader += "\t";
+                    metaInfo temp = new metaInfo();
+                    temp.name = "Cond_v(mS/cm)";
+                    temp.unit = "mS/cm";
+                    metaData.Add(temp);
                 }
                 else if (s.Contains("Specific Conductance"))
                 {
                     finalHeader += "CondSp_v(mS/cm)";
                     finalHeader += "\t";
+                    metaInfo temp = new metaInfo();
+                    temp.name = "CondSp_v(mS/cm)";
+                    temp.unit = "mS/cm";
+                    metaData.Add(temp);
                 }
                 else if (s.Contains("Fluorescence"))
                 {
                     finalHeader += "FlChl_v(RFU)";
                     finalHeader += "\t";
+                    metaInfo temp = new metaInfo();
+                    temp.name = "FlChl_v(RFU)";
+                    temp.unit = "RFU";
+                    metaData.Add(temp);
                 }
                 else if (s.Contains("Beam Transmission"))
                 {
                     finalHeader += "BmTran_v(%)";
                     finalHeader += "\t";
+                    metaInfo temp = new metaInfo();
+                    temp.name = "BmTran_v(%)";
+                    temp.unit = "%";
+                    metaData.Add(temp);
                 }
                 else if (s.Contains("PAR/Irradiance"))
                 {
                     finalHeader += "RadPAR_v(umol/m^2/s)";
                     finalHeader += "\t";
+                    metaInfo temp = new metaInfo();
+                    temp.name = "RadPAR_v(umol/m^2/s)";
+                    temp.unit = "umol/m^2/s";
+                    metaData.Add(temp);
                 }
                 else if (s.Contains("Salinity"))
                 {
                     finalHeader += "Sal_v()";
                     finalHeader += "\t";
+                    metaInfo temp = new metaInfo();
+                    temp.name = "Sal_v()";
+                    temp.unit = " ";
+                    metaData.Add(temp);
                 }
                 else
                 {
                     finalHeader += s;
                     finalHeader += "\t";
+                    metaInfo temp = new metaInfo();
+                    temp.name = s;
+                    temp.unit = " ";
+                    metaData.Add(temp);
                 }
                 counter++;
             }
@@ -238,4 +402,3 @@ namespace ConsoleApplication1
     }
 
     }
-
