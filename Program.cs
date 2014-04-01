@@ -97,13 +97,7 @@ namespace ConsoleApplication1
             }
             writer.Close();
             List<string> qcInfo = new List<string>();
-            qcInfo.Add("Vertical position type");
-            qcInfo.Add("Model");
-            qcInfo.Add("Accuracy Units");
-            qcInfo.Add("Calibration");
-            qcInfo.Add("Calibration Type");
-            qcInfo.Add("Sensor Height (m)");
-            qcInfo.Add("Notes");
+
             using (XmlWriter xmlWriter = XmlWriter.Create(Path.GetFileName(toSave) + "Meta.xml"))
             {
                 xmlWriter.WriteStartDocument();
@@ -116,14 +110,43 @@ namespace ConsoleApplication1
                     xmlWriter.WriteElementString("unit", v.unit);
 
                     xmlWriter.WriteStartElement("qc-information");
-
-                    foreach (string qcs in qcInfo)
+                    if(v.qc.model != null)
                     {
+
                         xmlWriter.WriteStartElement("qc-column");
-                        xmlWriter.WriteElementString("parameter", qcs);
-                        xmlWriter.WriteElementString("value", null);
+                        xmlWriter.WriteElementString("parameter", "Model");
+                        
+                        xmlWriter.WriteElementString("value", v.qc.model);
                         xmlWriter.WriteEndElement();// qc-column
                     }
+                    if(v.qc.calibration != null)
+                    {
+
+                        xmlWriter.WriteStartElement("qc-column");
+                        xmlWriter.WriteElementString("parameter", "Calibration");
+                        
+                        xmlWriter.WriteElementString("value", v.qc.calibration);
+                        xmlWriter.WriteEndElement();// qc-column
+                    }
+                    if(v.qc.calibrationType != null)
+                    {
+
+                        xmlWriter.WriteStartElement("qc-column");
+                        xmlWriter.WriteElementString("parameter", "Calibration Type");
+                        
+                        xmlWriter.WriteElementString("value", v.qc.calibrationType);
+                        xmlWriter.WriteEndElement();// qc-column
+                    }
+                    if(v.qc.sensorHeight != null)
+                    {
+
+                        xmlWriter.WriteStartElement("qc-column");
+                        xmlWriter.WriteElementString("parameter", "Sensor height (m)");
+                        
+                        xmlWriter.WriteElementString("value", v.qc.sensorHeight);
+                        xmlWriter.WriteEndElement();// qc-column
+                    }
+                    
                     xmlWriter.WriteEndElement();// qc-information
                     xmlWriter.WriteEndElement();// variable
                 }
@@ -270,6 +293,8 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "TmpWtr_v(degC)";
                     temp.unit = "degC";
+                    temp.qc = new qcData();
+                    temp.qc.sensorHeight = "0";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Depth"))  //Sort out depth metadata when its all done
@@ -291,6 +316,8 @@ namespace ConsoleApplication1
                     metaInfo ph = new metaInfo();
                     ph.name = "pH_v()";
                     ph.unit = " ";
+                    ph.qc = new qcData();
+                    ph.qc.sensorHeight = "0.2";
                     metaData.Add(ph);
                 }
                 else if (s.Contains("Density"))
@@ -300,6 +327,8 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "Density_v()";
                     temp.unit = " ";
+                    temp.qc = new qcData();
+                    temp.qc.sensorHeight = "0";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("sbeox0Mg/L"))
@@ -309,6 +338,8 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "DOconc_v(mg/L)";
                     temp.unit = "mg/L";
+                    temp.qc = new qcData();
+                    temp.qc.sensorHeight = "0";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Attenuation"))
@@ -318,6 +349,8 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "BmAtt_v(1/m)";
                     temp.unit = "1/m";
+                    temp.qc = new qcData();
+                    temp.qc.sensorHeight = "0";
                     metaData.Add(temp);
                 } 
                 else if (s.Contains("sbeox0PS"))
@@ -327,6 +360,8 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "DOsat_v(%sat)";
                     temp.unit = "%sat";
+                    temp.qc = new qcData();
+                    temp.qc.sensorHeight = "0";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Conductivity"))
@@ -336,6 +371,8 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "Cond_v(mS/cm)";
                     temp.unit = "mS/cm";
+                    temp.qc = new qcData();
+                    temp.qc.sensorHeight = "0";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Specific Conductance"))
@@ -345,6 +382,8 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "CondSp_v(mS/cm)";
                     temp.unit = "mS/cm";
+                    temp.qc = new qcData();
+                    temp.qc.sensorHeight = "0";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Fluorescence"))
@@ -354,6 +393,8 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "FlChl_v(RFU)";
                     temp.unit = "RFU";
+                    temp.qc = new qcData();
+                    temp.qc.sensorHeight = "0.5";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Beam Transmission"))
@@ -363,6 +404,8 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "BmTran_v(%)";
                     temp.unit = "%";
+                    temp.qc = new qcData();
+                    temp.qc.sensorHeight = "0.3";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("PAR/Irradiance"))
@@ -372,6 +415,8 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "RadPAR_v(umol/m^2/s)";
                     temp.unit = "umol/m^2/s";
+                    temp.qc = new qcData();
+                    temp.qc.sensorHeight = "0.7";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Salinity"))
@@ -381,6 +426,8 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "Sal_v()";
                     temp.unit = " ";
+                    temp.qc = new qcData();
+                    temp.qc.sensorHeight = "0";
                     metaData.Add(temp);
                 }
                 else
