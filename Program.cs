@@ -252,14 +252,15 @@ namespace ConsoleApplication1
                             offset = double.Parse(splitter[i]);
                             firstDepth = true;
                         }
-                        double parsed = double.Parse(splitter[i]);
-                        double value = parsed - offset;
-                        toReturn += splitter[i];
-                        toReturn += "\t";
-                        toReturn += value;
-                        toReturn += "\t";
-                        counter++;
-                        continue;
+                        else
+                        {
+                            double parsed = double.Parse(splitter[i]);
+                            double value = parsed - offset;
+                            toReturn += value;
+                            toReturn += "\t";
+                            counter++;
+                            continue;
+                        }
                         
                     }
 
@@ -295,17 +296,27 @@ namespace ConsoleApplication1
                     temp.unit = "degC";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0";
+                    temp.qc.model = "Sea-Bird SBE19plus";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Depth"))  //Sort out depth metadata when its all done
                 {
-                    finalHeader += "Depth_(m)";
-                    finalHeader += "\t";
                     if (!first)
                     {
                         depthHeader = counter;
                         first = true;
                         finalHeader += "DepthAdj_(m)";
+                        metaInfo temp = new metaInfo();
+                        temp.name = "DepthAdj_()";
+                        temp.unit = "Meters";
+                        temp.qc = new qcData();
+                        temp.qc.sensorHeight = "0";
+                        temp.qc.model = "Sea-Bird SBE19plus";
+                        finalHeader += "\t";
+                    }
+                    else
+                    {
+                        finalHeader += "Depth_(m)";
                         finalHeader += "\t";
                     }
                 }
@@ -318,6 +329,7 @@ namespace ConsoleApplication1
                     ph.unit = " ";
                     ph.qc = new qcData();
                     ph.qc.sensorHeight = "0.2";
+                    ph.qc.model = "Sea-Bird SBE19plus";
                     metaData.Add(ph);
                 }
                 else if (s.Contains("Density"))
@@ -329,6 +341,7 @@ namespace ConsoleApplication1
                     temp.unit = " ";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0";
+                    temp.qc.model = "Sea-Bird SBE19plus";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("sbeox0Mg/L"))
@@ -340,6 +353,7 @@ namespace ConsoleApplication1
                     temp.unit = "mg/L";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0";
+                    temp.qc.model = "Sea-Bird SBE19plus";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Attenuation"))
@@ -349,7 +363,9 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "BmAtt_v(1/m)";
                     temp.unit = "1/m";
+                  
                     temp.qc = new qcData();
+                    temp.qc.model = "Sea-Bird SBE19plus";
                     temp.qc.sensorHeight = "0";
                     metaData.Add(temp);
                 } 
@@ -360,7 +376,9 @@ namespace ConsoleApplication1
                     metaInfo temp = new metaInfo();
                     temp.name = "DOsat_v(%sat)";
                     temp.unit = "%sat";
+
                     temp.qc = new qcData();
+                    temp.qc.model = "Sea-Bird SBE19plus";
                     temp.qc.sensorHeight = "0";
                     metaData.Add(temp);
                 }
@@ -373,6 +391,7 @@ namespace ConsoleApplication1
                     temp.unit = "mS/cm";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0";
+                    temp.qc.model = "Sea-Bird SBE19plus";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Specific Conductance"))
@@ -384,6 +403,7 @@ namespace ConsoleApplication1
                     temp.unit = "mS/cm";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0";
+                    temp.qc.model = "Sea-Bird SBE19plus";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Fluorescence"))
@@ -395,6 +415,7 @@ namespace ConsoleApplication1
                     temp.unit = "RFU";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0.5";
+                    temp.qc.model = "Sea-Bird SBE19plus";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Beam Transmission"))
@@ -406,6 +427,7 @@ namespace ConsoleApplication1
                     temp.unit = "%";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0.3";
+                    temp.qc.model = "Sea-Bird SBE19plus";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("PAR/Irradiance"))
@@ -417,6 +439,7 @@ namespace ConsoleApplication1
                     temp.unit = "umol/m^2/s";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0.7";
+                    temp.qc.model = "Sea-Bird SBE19plus";
                     metaData.Add(temp);
                 }
                 else if (s.Contains("Salinity"))
@@ -428,6 +451,7 @@ namespace ConsoleApplication1
                     temp.unit = " ";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0";
+                    temp.qc.model = "Sea-Bird SBE19plus";
                     metaData.Add(temp);
                 }
                 else
