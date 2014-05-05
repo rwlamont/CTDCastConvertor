@@ -24,6 +24,7 @@ namespace ConsoleApplication1
         public string sensorHeight;
         public string calibration;
         public string calibrationType;
+        public string notes;
     }
 
     class waterBody
@@ -47,12 +48,18 @@ namespace ConsoleApplication1
     {
         static List<metaInfo> metaData = new List<metaInfo>();
         static waterBody waterMeta = new waterBody();
+        static string[] calibDates = new string[30];
         static int depthHeader = 0;
         static bool firstDepth = false;
         static double offset = 0.0;
+        static int localLength = 0; // Length of calib date
+        static int startPoint = 0; // Start of Calib date
+        static int dateCounter = 0; // numbe of calib dates
+        static string waterType = "Lake";
         static void Run(string fileName)
         {
             string[] lines = File.ReadAllLines(fileName);
+            dateCounter = 0;
             int variableLine = 0, flagLine = 0, endLine = 0;
             for (int i = 0; i < lines.Count(); i++)
             {
@@ -68,6 +75,17 @@ namespace ConsoleApplication1
                 {
                     variableLine = i + 1;
                     break;
+                }
+            }
+            for (int i = 0; i < lines.Count(); i++)
+            {
+                if (lines[i].Contains("CalibrationDate"))
+                {
+                    startPoint = lines[i].IndexOf(">") + 1;
+                    localLength = (lines[i].Length - 18) - startPoint;
+                    calibDates[dateCounter] = lines[i].Substring(startPoint, localLength);
+                    dateCounter++;
+                    
                 }
             }
             for (int i = 0; i < lines.Count(); i++)
@@ -96,9 +114,11 @@ namespace ConsoleApplication1
                 variableLine++;
             }
             writer.Close();
-            List<string> qcInfo = new List<string>();
+            
+            
+           
 
-            using (XmlWriter xmlWriter = XmlWriter.Create(Path.GetFileName(toSave) + "Meta.xml"))
+            using (XmlWriter xmlWriter = XmlWriter.Create("LernzMeta.xml"))
             {
                 xmlWriter.WriteStartDocument();
                 xmlWriter.WriteStartElement("lernz-meta");
@@ -117,6 +137,19 @@ namespace ConsoleApplication1
                         xmlWriter.WriteElementString("parameter", "Model");
                         
                         xmlWriter.WriteElementString("value", v.qc.model);
+                        xmlWriter.WriteEndElement();// qc-column
+                    }
+                    if (v.name == "DepthAdj")
+                    {
+                        v.qc.notes = "Adjusted by an offset of " + offset + " Meters.";
+                    }
+                    if (v.qc.notes != null)
+                    {
+
+                        xmlWriter.WriteStartElement("qc-column");
+                        xmlWriter.WriteElementString("parameter", "Notes");
+
+                        xmlWriter.WriteElementString("value", v.qc.notes);
                         xmlWriter.WriteEndElement();// qc-column
                     }
                     if(v.qc.calibration != null)
@@ -174,14 +207,87 @@ namespace ConsoleApplication1
                 xmlWriter.WriteEndElement();//lernz-meta
             }
 
+            try
+            {
+                
+                using (XmlWriter xmlWrite = XmlWriter.Create("mets.xml"))
+                {
+                    xmlWrite.WriteStartDocument();
+                    xmlWrite.WriteRaw("\n<mets ID=\"sort-mets_mets\" OBJID=\"sword-mets\" LABEL=\"DSpace SWORD Item\" PROFILE=\"DSpace METS SIP Profile 1.0\" xmlns=\"http://www.loc.gov/METS/\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd\">\n");
+                    xmlWrite.WriteRaw("\t<metsHdr CREATEDATE=\"" + DateTime.UtcNow + "\">\n");
+                    xmlWrite.WriteRaw("\t\t<agent ROLE=\"CUSTODIAN\" TYPE=\"ORGANIZATION\">\n");
+                    xmlWrite.WriteRaw("\t\t\t<name>Unkown</name>\n");
+                    xmlWrite.WriteRaw("\t\t</agent>\n");
+                    xmlWrite.WriteRaw("\t</metsHdr>\n");
+                    xmlWrite.WriteRaw("<dmdSec ID=\"sword-mets-dmd-1\" GROUPID=\"sword-mets-dmd-1_group-1\">\n");
+                    xmlWrite.WriteRaw("<mdWrap LABEL=\"SWAP Metadata\" MDTYPE=\"OTHER\" OTHERMDTYPE=\"EPDCX\" MIMETYPE=\"text/xml\">\n");
+                    xmlWrite.WriteStartElement("xmldata");
+                    xmlWrite.WriteRaw("<epdcx:descriptionSet xmlns:epdcx=\"http://purl.org/eprint/epdcx/2006-11-16/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://purl.org/eprint/epdcx/2006-11-16/ http://www.ukoln.ac.uk/repositories/eprints-application-profile/epdcx/xsd/2006-11-16/epdcx.xsd\">\n");
+                    xmlWrite.WriteRaw("<epdcx:description epdcx:resourceId=\"sword-mets-epdcx-1\">\n");
+                    xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"lernz.data.category\">\n");
+                    xmlWrite.WriteRaw("<epdcx:valueString>Water quality profiles</epdcx:valueString>\n");
+                    xmlWrite.WriteRaw("</epdcx:statement>\n");
+                    xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"lernz.data.type\">");
+                    xmlWrite.WriteRaw("<epdcx:valueString>" + waterType + "</epdcx:valueString>\n");
+                    xmlWrite.WriteRaw("</epdcx:statement>\n");
+                    xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"http://purl.org/dc/elements/1.1/title\">\n");
+                    xmlWrite.WriteRaw("<epdcx:valueString>" + Path.GetFileNameWithoutExtension(toSave) + "</epdcx:valueString>\n");
+                    xmlWrite.WriteRaw("</epdcx:statement>\n");
+                    xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"lernz.data.provenance\">");
+                    xmlWrite.WriteRaw("<epdcx:valueString>SWORD submission</epdcx:valueString>");
+                    xmlWrite.WriteRaw("</epdcx:statement>\n");
+                    xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"http://purl.org/dc/elements/1.1/creator\">\n");
+                    xmlWrite.WriteRaw("<epdcx:valueString>Author/Creator1 of the dataset in the form last name, first name</epdcx:valueString>\n");
+                    xmlWrite.WriteRaw("</epdcx:statement>\n");
+                    xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"http://purl.org/dc/elements/1.1/creator\">\n");
+                    xmlWrite.WriteRaw("<epdcx:valueString></epdcx:valueString>\n");
+                    xmlWrite.WriteRaw("</epdcx:statement>\n");
+                    xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"http://purl.org/dc/terms/abstract\">\n");
+                    xmlWrite.WriteRaw("<epdcx:valueString></epdcx:valueString>\n");
+                    xmlWrite.WriteRaw("</epdcx:statement>\n");
+                    xmlWrite.WriteRaw("</epdcx:description>\n");
+                    xmlWrite.WriteRaw("</epdcx:descriptionSet>\n");
+                    xmlWrite.WriteEndElement();
+                    xmlWrite.WriteRaw("\n</mdWrap>\n");
+                    xmlWrite.WriteRaw("</dmdSec>\n");
+                    xmlWrite.WriteRaw("\t<fileSec>\n");
+                    xmlWrite.WriteRaw("\t\t<fileGrp ID=\"sword-mets-fgrp-1\" USE=\"CONTENT\">\n");
+                    xmlWrite.WriteRaw("\t\t\t<file GROUPID=\"sword-mets-fgid-0\" ID=\"sword-mets-file-0\" MIMETYPE=\"text/csv\">\n");
+                    xmlWrite.WriteRaw("\t\t\t\t<FLocat LOCTYPE=\"URL\" xlink:href=\"" + Path.GetFileName(toSave) + "\" />");
+                    xmlWrite.WriteRaw("\t\t\t</file>\n");
+                    xmlWrite.WriteRaw("\t\t\t<file GROUPID=\"sword-mets-fgid-1\" ID=\"sword-mets-file-1\" MIMETYPE=\"application/xml\">\n");
+                    xmlWrite.WriteRaw("\t\t\t\t<FLocat LOCTYPE=\"URL\" xlink:href=\"LernzMeta.xml\" />\n");
+                    xmlWrite.WriteRaw("\t\t\t</file>\n");
+                    xmlWrite.WriteRaw("\t\t</fileGrp>\n");
+                    xmlWrite.WriteRaw("\t</fileSec>\n");
+                    xmlWrite.WriteRaw("\t<structMap ID=\"sword-mets-struct-1\" LABEL=\"structure\" TYPE=\"LOGICAL\">\n");
+                    xmlWrite.WriteRaw("\t\t<div ID=\"sword-mets-div-1\" DMDID=\"sword-mets-dmd-1\" TYPE=\"SWORD Object\">\n");
+                    xmlWrite.WriteRaw("\t\t\t<div ID=\"sword-mets-div-2\" TYPE=\"File\">\n");
+                    xmlWrite.WriteRaw("\t\t\t\t<fptr FILEID=\"sword-mets-file-0\" />\n");
+                    xmlWrite.WriteRaw("\t\t\t\t<fptr FILEID=\"sword-mets-file-1\" />\n");
+                    xmlWrite.WriteRaw("\t\t\t</div>\n");
+                    xmlWrite.WriteRaw("\t\t</div>\n");
+                    xmlWrite.WriteRaw("\t</structMap>\n");
+                    xmlWrite.WriteRaw("</mets>\n");
+
+                    xmlWrite.WriteEndDocument();
+                }
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
             using (ZipFile zip = new ZipFile())
             {
+                zip.AddFile("mets.xml");
                 zip.AddFile(Path.GetFileName(toSave));
-                zip.AddFile(Path.GetFileName(toSave) + "Meta.xml");
+                zip.AddFile("LernzMeta.xml");
                 zip.Save(Path.GetFileNameWithoutExtension(fileName) + ".zip");
             }
            
             File.Delete(toSave);
+            File.Delete("LernzMeta.xml");
             Console.WriteLine("Endline = " + endLine);
             Console.WriteLine("variables = " + variableLine);
             Console.WriteLine("flag = " + flagLine);
@@ -205,6 +311,7 @@ namespace ConsoleApplication1
             waterMeta.siteName = reader.ReadLine().Substring(11);
             waterMeta.longitude = reader.ReadLine().Substring(11);
             waterMeta.latitude = reader.ReadLine().Substring(11);
+            waterType = reader.ReadLine().Substring(11);
         }
 
 
@@ -220,6 +327,7 @@ namespace ConsoleApplication1
                 Run(files[j]);
                 Console.WriteLine("Finished processing " + files[j]);
                 Console.WriteLine();
+                firstDepth = false;
             }
             Console.WriteLine("All files finished processing ");
             Console.WriteLine("Read a total of " + files.Count() +" files");
@@ -251,6 +359,10 @@ namespace ConsoleApplication1
                         {
                             offset = double.Parse(splitter[i]);
                             firstDepth = true;
+                            toReturn += "0";
+                            toReturn += "\t";
+                            counter++;
+                            continue;
                         }
                         else
                         {
@@ -270,8 +382,18 @@ namespace ConsoleApplication1
                     }
                     else
                     {
-                        toReturn += splitter[i];
-                        toReturn += "\t";
+                        if (splitter[i].Contains("e"))
+                        {
+                            toReturn += Double.Parse(splitter[i], System.Globalization.NumberStyles.Float);
+                            toReturn += "\t";
+                            continue;
+
+                        }
+                        else
+                        {
+                            toReturn += splitter[i];
+                            toReturn += "\t";
+                        }
                     }
                     counter++;
                 }
@@ -289,10 +411,10 @@ namespace ConsoleApplication1
             {
                 if(s.Contains("Temperature"))
                 {
-                    finalHeader += "TmpWtr_v(degC)";
+                    finalHeader += "TmpWtr";
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
-                    temp.name = "TmpWtr_v(degC)";
+                    temp.name = "TmpWtr";
                     temp.unit = "degC";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0";
@@ -305,28 +427,28 @@ namespace ConsoleApplication1
                     {
                         depthHeader = counter;
                         first = true;
-                        finalHeader += "DepthAdj_(m)";
+                        finalHeader += "DepthAdj";
                         metaInfo temp = new metaInfo();
-                        temp.name = "DepthAdj_()";
+                        temp.name = "DepthAdj";
                         temp.unit = "Meters";
                         temp.qc = new qcData();
-                        temp.qc.sensorHeight = "0";
-                        temp.qc.model = "Sea-Bird SBE19plus";
+                        temp.qc.sensorHeight = "0" SBE19plus";
                         finalHeader += "\t";
+                        metaData.Add(temp);
                     }
                     else
                     {
-                        finalHeader += "Depth_(m)";
+                        finalHeader += "Depth";
                         finalHeader += "\t";
                     }
                 }
                 else if (s.Contains("pH"))
                 {
-                    finalHeader += "pH_v()";
+                    finalHeader += "pH";
                     finalHeader += "\t";
                     metaInfo ph = new metaInfo();
-                    ph.name = "pH_v()";
-                    ph.unit = " ";
+                    ph.name = "pH";
+                    ph.unit = "";
                     ph.qc = new qcData();
                     ph.qc.sensorHeight = "0.2";
                     ph.qc.model = "Sea-Bird SBE19plus";
@@ -334,11 +456,11 @@ namespace ConsoleApplication1
                 }
                 else if (s.Contains("Density"))
                 {
-                    finalHeader += "Density_v()";
+                    finalHeader += "Density";
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
-                    temp.name = "Density_v()";
-                    temp.unit = " ";
+                    temp.name = "Density";
+                    temp.unit = "";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0";
                     temp.qc.model = "Sea-Bird SBE19plus";
@@ -346,10 +468,10 @@ namespace ConsoleApplication1
                 }
                 else if (s.Contains("sbeox0Mg/L"))
                 {
-                    finalHeader += "DOconc_v(mg/L)";
+                    finalHeader += "DOconc";
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
-                    temp.name = "DOconc_v(mg/L)";
+                    temp.name = "DOconc";
                     temp.unit = "mg/L";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0";
@@ -358,10 +480,10 @@ namespace ConsoleApplication1
                 }
                 else if (s.Contains("Attenuation"))
                 {
-                    finalHeader += "BmAtt_v(1/m)";
+                    finalHeader += "BmAtt";
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
-                    temp.name = "BmAtt_v(1/m)";
+                    temp.name = "BmAtt";
                     temp.unit = "1/m";
                   
                     temp.qc = new qcData();
@@ -371,10 +493,10 @@ namespace ConsoleApplication1
                 } 
                 else if (s.Contains("sbeox0PS"))
                 {
-                    finalHeader += "DOsat_v(%sat)";
+                    finalHeader += "DOsat";
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
-                    temp.name = "DOsat_v(%sat)";
+                    temp.name = "DOsat";
                     temp.unit = "%sat";
 
                     temp.qc = new qcData();
@@ -384,7 +506,7 @@ namespace ConsoleApplication1
                 }
                 else if (s.Contains("Conductivity"))
                 {
-                    finalHeader += "Cond_v(mS/cm)";
+                    finalHeader += "Cond";
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
                     temp.name = "Cond_v(mS/cm)";
@@ -396,10 +518,10 @@ namespace ConsoleApplication1
                 }
                 else if (s.Contains("Specific Conductance"))
                 {
-                    finalHeader += "CondSp_v(mS/cm)";
+                    finalHeader += "CondSp";
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
-                    temp.name = "CondSp_v(mS/cm)";
+                    temp.name = "CondSp";
                     temp.unit = "mS/cm";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0";
@@ -408,7 +530,7 @@ namespace ConsoleApplication1
                 }
                 else if (s.Contains("Fluorescence"))
                 {
-                    finalHeader += "FlChl_v(RFU)";
+                    finalHeader += "FlChl";
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
                     temp.name = "FlChl_v(RFU)";
@@ -420,10 +542,10 @@ namespace ConsoleApplication1
                 }
                 else if (s.Contains("Beam Transmission"))
                 {
-                    finalHeader += "BmTran_v(%)";
+                    finalHeader += "BmTran";
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
-                    temp.name = "BmTran_v(%)";
+                    temp.name = "BmTran";
                     temp.unit = "%";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0.3";
@@ -432,10 +554,10 @@ namespace ConsoleApplication1
                 }
                 else if (s.Contains("PAR/Irradiance"))
                 {
-                    finalHeader += "RadPAR_v(umol/m^2/s)";
+                    finalHeader += "RadPAR";
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
-                    temp.name = "RadPAR_v(umol/m^2/s)";
+                    temp.name = "RadPAR";
                     temp.unit = "umol/m^2/s";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0.7";
@@ -444,11 +566,11 @@ namespace ConsoleApplication1
                 }
                 else if (s.Contains("Salinity"))
                 {
-                    finalHeader += "Sal_v()";
+                    finalHeader += "Sal";
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
-                    temp.name = "Sal_v()";
-                    temp.unit = " ";
+                    temp.name = "Sal";
+                    temp.unit = "";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0";
                     temp.qc.model = "Sea-Bird SBE19plus";
@@ -460,7 +582,7 @@ namespace ConsoleApplication1
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
                     temp.name = s;
-                    temp.unit = " ";
+                    temp.unit = "";
                     metaData.Add(temp);
                 }
                 counter++;
