@@ -79,22 +79,38 @@ namespace ConsoleApplication1
             string[] lines = File.ReadAllLines(fileName);
             dateCounter = 0;
             int variableLine = 0, flagLine = 0, endLine = 0;
+            dateTime = "";
             for (int i = 0; i < lines.Count(); i++)
             {
                 if (lines[i].Contains("* cast"))
                 {
                     string[] splitter = lines[i].Split(' ');
-                    castNumber = splitter[4];
-                    if(splitter[5].Length < 2)
+                    if (splitter[3] != "")
                     {
-                        splitter[5] = "0" + splitter[5];
-                    }
+                        castNumber = splitter[3];
+                        if (splitter[4].Length < 2)
+                        {
+                            splitter[4] = "0" + splitter[4];
+                        }
 
-                    if(months.ContainsKey(splitter[6]))
+                        if (months.ContainsKey(splitter[5]))
+                        {
+                            dateTime = splitter[6] + "-" + months[splitter[5]] + "-" + splitter[4] + " " + splitter[7].Substring(0, 5); //8 w/ seconds
+                        }
+                    }
+                    else
                     {
-                        dateTime = splitter[7] + "-" + months[splitter[6]] + "-" + splitter[5] + " " + splitter[8].Substring(0, 5);
-                    }
+                        castNumber = splitter[4];
+                        if (splitter[5].Length < 2)
+                        {
+                            splitter[5] = "0" + splitter[5];
+                        }
 
+                        if (months.ContainsKey(splitter[6]))
+                        {
+                            dateTime = splitter[7] + "-" + months[splitter[6]] + "-" + splitter[5] + " " + splitter[8].Substring(0, 5); //5 no seconds
+                        }
+                    }
                     Console.WriteLine(dateTime);
                     valid = true;
                     break;
@@ -166,11 +182,11 @@ namespace ConsoleApplication1
                     var newFileName = "";
                     if (waterMeta.name.Equals(waterMeta.siteName))
                     {
-                        newFileName = dateTime.Substring(0, 10) + "_" + waterMeta.name + "_[" + castNumber + "].txt";
+                        newFileName = dateTime + "_" + waterMeta.name +".csv";
                     }
                     else
                     {
-                        newFileName = dateTime.Substring(0, 10) + "_" + waterMeta.name + "_(" + waterMeta.siteName + ")" + "_[" + castNumber + "].txt";
+                        newFileName = dateTime.Replace(':', '-') +"_" + waterMeta.name + "_(" + waterMeta.siteName + ")" + ".csv";
                     }
                     var writer = new StreamWriter(newFileName);
 
@@ -250,19 +266,20 @@ namespace ConsoleApplication1
                         }
                         xmlWriter.WriteEndElement(); // end variables
 
-                        xmlWriter.WriteStartElement("waterbodies");
+                        
                         xmlWriter.WriteStartElement("waterbody");
+                        
                         xmlWriter.WriteElementString("waterbody-id", waterMeta.id);
                         xmlWriter.WriteElementString("waterbody-name", waterMeta.name);
                         xmlWriter.WriteElementString("region", waterMeta.region);
                         xmlWriter.WriteElementString("exact-coord", waterMeta.exactCoord);
                         xmlWriter.WriteElementString("elevation", waterMeta.elevation);
                         xmlWriter.WriteElementString("water-depth-measured", waterMeta.depth);
-                        xmlWriter.WriteElementString("water-calibration", waterMeta.depthCalibration);
+                        xmlWriter.WriteElementString("depth-calibration", waterMeta.depthCalibration);
                         xmlWriter.WriteElementString("notes", waterMeta.notes);
                         xmlWriter.WriteEndElement();//waterbody
 
-                        xmlWriter.WriteEndElement();//waterbodies
+                        
                         xmlWriter.WriteEndElement();//lernz-meta
                     }
 
@@ -290,16 +307,16 @@ namespace ConsoleApplication1
                             xmlWrite.WriteRaw("<epdcx:valueString>" + waterType + "</epdcx:valueString>\n");
                             xmlWrite.WriteRaw("</epdcx:statement>\n");
                             xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"http://purl.org/dc/elements/1.1/title\">\n");
-                            xmlWrite.WriteRaw("<epdcx:valueString>" + newFileName + "</epdcx:valueString>\n");
+                            xmlWrite.WriteRaw("<epdcx:valueString>" + newFileName.Replace("_"," ") + "</epdcx:valueString>\n");
                             xmlWrite.WriteRaw("</epdcx:statement>\n");
                             xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"lernz.data.provenance\">");
                             xmlWrite.WriteRaw("<epdcx:valueString>SWORD submission</epdcx:valueString>");
                             xmlWrite.WriteRaw("</epdcx:statement>\n");
                             xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"http://purl.org/dc/elements/1.1/creator\">\n");
-                            xmlWrite.WriteRaw("<epdcx:valueString>Author/Creator1 of the dataset in the form last name, first name</epdcx:valueString>\n");
+                            xmlWrite.WriteRaw("<epdcx:valueString>McBride, Chris</epdcx:valueString>\n");
                             xmlWrite.WriteRaw("</epdcx:statement>\n");
                             xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"http://purl.org/dc/terms/abstract\">\n");
-                            xmlWrite.WriteRaw("<epdcx:valueString></epdcx:valueString>\n");
+                            xmlWrite.WriteRaw("<epdcx:valueString> A CTD cast on " + waterMeta.name + "</epdcx:valueString>\n");
                             xmlWrite.WriteRaw("</epdcx:statement>\n");
                             xmlWrite.WriteRaw("</epdcx:description>\n");
                             xmlWrite.WriteRaw("</epdcx:descriptionSet>\n");
@@ -356,16 +373,33 @@ namespace ConsoleApplication1
         static void readInWaterMeta()
         {
             var reader = new StreamReader("waterData.txt");
+            string temp;
             reader.ReadLine();
             reader.ReadLine();
-            waterMeta.id = reader.ReadLine().Substring(14);
+            temp = reader.ReadLine();
+            if (temp.Length <= 14)
+            {
+                waterMeta.id = "";
+            }
+            else
+            {
+                waterMeta.id = temp.Substring(14);
+            }
             waterMeta.name = reader.ReadLine().Substring(16);
             waterMeta.region = reader.ReadLine().Substring(8);
             waterMeta.exactCoord = reader.ReadLine().Substring(13);
             waterMeta.elevation = reader.ReadLine().Substring(10);
             waterMeta.depth = reader.ReadLine().Substring(22);
             waterMeta.depthCalibration = reader.ReadLine().Substring(18);
-            waterMeta.notes = reader.ReadLine().Substring(7);
+            temp = reader.ReadLine();
+            if (temp.Length <= 7)
+            {
+                waterMeta.notes = "";
+            }
+            else
+            {
+                waterMeta.notes = temp.Substring(7);
+            }
             waterMeta.siteName = reader.ReadLine().Substring(11);
             waterMeta.longitude = reader.ReadLine().Substring(11);
             waterMeta.latitude = reader.ReadLine().Substring(11);
@@ -509,6 +543,7 @@ namespace ConsoleApplication1
                         temp.qc = new qcData();
                         temp.qc.sensorHeight = "0";
                         temp.qc.model = "SBE19plus";
+                        temp.qc.notes = "Depth adjusted by " + offset + " meters";
                         finalHeader += "\t";
                         metaData.Add(temp);
                     }
@@ -573,7 +608,7 @@ namespace ConsoleApplication1
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
                     temp.name = "DOsat";
-                    temp.unit = "%sat";
+                    temp.unit = "%";
 
                     temp.qc = new qcData();
                     temp.qc.model = "Sea-Bird SBE19plus";
@@ -609,7 +644,7 @@ namespace ConsoleApplication1
                     finalHeader += "FlChl";
                     finalHeader += "\t";
                     metaInfo temp = new metaInfo();
-                    temp.name = "FlChl_v(RFU)";
+                    temp.name = "FlChl";
                     temp.unit = "RFU";
                     temp.qc = new qcData();
                     temp.qc.sensorHeight = "0.5";
