@@ -56,8 +56,10 @@ namespace ConsoleApplication1
         static string castNumber;
         static int startPoint = 0; // Start of Calib date
         static int dateCounter = 0; // numbe of calib dates
-        static string waterType = "Lake";
+        static string waterType = "River";
         static string dateTime = "";
+        static string author = "";
+        static string description = "";
         
         static void Run(string fileName)
         {
@@ -182,7 +184,7 @@ namespace ConsoleApplication1
                     var newFileName = "";
                     if (waterMeta.name.Equals(waterMeta.siteName))
                     {
-                        newFileName = dateTime + "_" + waterMeta.name +".csv";
+                        newFileName = dateTime.Replace(':', '-') + "_" + waterMeta.name + ".csv";
                     }
                     else
                     {
@@ -307,16 +309,16 @@ namespace ConsoleApplication1
                             xmlWrite.WriteRaw("<epdcx:valueString>" + waterType + "</epdcx:valueString>\n");
                             xmlWrite.WriteRaw("</epdcx:statement>\n");
                             xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"http://purl.org/dc/elements/1.1/title\">\n");
-                            xmlWrite.WriteRaw("<epdcx:valueString>" + newFileName.Replace("_"," ") + "</epdcx:valueString>\n");
+                            xmlWrite.WriteRaw("<epdcx:valueString>" + newFileName.Replace("_"," ").Remove(newFileName.Length - 4) + "</epdcx:valueString>\n");
                             xmlWrite.WriteRaw("</epdcx:statement>\n");
                             xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"lernz.data.provenance\">");
                             xmlWrite.WriteRaw("<epdcx:valueString>SWORD submission</epdcx:valueString>");
                             xmlWrite.WriteRaw("</epdcx:statement>\n");
                             xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"http://purl.org/dc/elements/1.1/creator\">\n");
-                            xmlWrite.WriteRaw("<epdcx:valueString>McBride, Chris</epdcx:valueString>\n");
+                            xmlWrite.WriteRaw("<epdcx:valueString>" + author + "</epdcx:valueString>\n");
                             xmlWrite.WriteRaw("</epdcx:statement>\n");
                             xmlWrite.WriteRaw("<epdcx:statement epdcx:propertyURI=\"http://purl.org/dc/terms/abstract\">\n");
-                            xmlWrite.WriteRaw("<epdcx:valueString> A CTD cast on " + waterMeta.name + "</epdcx:valueString>\n");
+                            xmlWrite.WriteRaw("<epdcx:valueString> " + description + "</epdcx:valueString>\n");
                             xmlWrite.WriteRaw("</epdcx:statement>\n");
                             xmlWrite.WriteRaw("</epdcx:description>\n");
                             xmlWrite.WriteRaw("</epdcx:descriptionSet>\n");
@@ -356,7 +358,8 @@ namespace ConsoleApplication1
                         zip.AddFile("mets.xml");
                         zip.AddFile(newFileName);
                         zip.AddFile("LernzMeta.xml");
-                        zip.Save(newFileName + ".zip");
+                        string zipFileName = newFileName.Remove(newFileName.Length - 4, 4);
+                        zip.Save(zipFileName + ".zip");
                     }
 
                     File.Delete(newFileName);
@@ -404,6 +407,8 @@ namespace ConsoleApplication1
             waterMeta.longitude = reader.ReadLine().Substring(11);
             waterMeta.latitude = reader.ReadLine().Substring(11);
             waterType = reader.ReadLine().Substring(11);
+            author = reader.ReadLine().Substring(8);
+            description = reader.ReadLine().Substring(13);
         }
 
 
